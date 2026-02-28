@@ -85,7 +85,7 @@ export function listInventory(
 
 export function createInventoryItem(
   token: string,
-  payload: { product_id: number; quantity: number; seller_id?: number }
+  payload: { product_id: number; quantity: number; price_per_unit: string; seller_id?: number }
 ) {
   return apiRequest<InventoryItem>(
     "/admin/inventory",
@@ -101,6 +101,7 @@ export function updateInventoryItem(
   token: string,
   itemId: number,
   quantity: number,
+  pricePerUnit: string,
   inventoryKind?: "regular" | "fresh_produce"
 ) {
   const path = inventoryKind
@@ -110,7 +111,7 @@ export function updateInventoryItem(
     path,
     {
       method: "PUT",
-      body: JSON.stringify({ quantity })
+      body: JSON.stringify({ quantity, price_per_unit: pricePerUnit })
     },
     token
   );

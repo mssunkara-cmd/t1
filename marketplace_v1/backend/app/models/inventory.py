@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.extensions import db
@@ -27,6 +28,8 @@ class InventoryItem(db.Model):
         nullable=False,
     )
     quantity: Mapped[int] = mapped_column(nullable=False, default=0)
+    reserved_quantity: Mapped[int] = mapped_column(nullable=False, default=0)
+    price_per_unit: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -24,6 +24,9 @@ export type AuthTokens = {
 
 export type OrderItem = {
   id?: number;
+  product_id?: number | null;
+  inventory_kind?: "regular" | "fresh_produce" | null;
+  source_inventory_item_id?: number | null;
   sku: string;
   name: string;
   qty: number;
@@ -33,12 +36,47 @@ export type OrderItem = {
 export type Order = {
   id: number;
   order_number: string;
+  order_group_id?: number | null;
+  group_number?: string | null;
   buyer_id: number;
   seller_id: number | null;
+  supplier_id?: number | null;
+  seller_name?: string | null;
+  supplier_name?: string | null;
+  source_label?: string | null;
   status: string;
   total_amount: string;
   currency: string;
   items: OrderItem[];
+};
+
+export type OrderGroup = {
+  order_group_id: number;
+  group_number: string;
+  buyer_id: number;
+  buyer_email?: string | null;
+  buyer_name?: string | null;
+  total_amount: string;
+  currency: string;
+  created_at?: string | null;
+  orders: Order[];
+};
+
+export type OrderCatalogItem = {
+  inventory_kind: "regular" | "fresh_produce";
+  inventory_item_id: number;
+  product_id: number;
+  product_name: string;
+  product_type: string;
+  product_unit?: string | null;
+  seller_id?: number | null;
+  seller_name?: string | null;
+  supplier_id?: number | null;
+  supplier_name?: string | null;
+  source_label?: string | null;
+  available_quantity: number;
+  suggested_unit_price?: string | null;
+  can_order: boolean;
 };
 
 export type InventoryItem = {
@@ -58,9 +96,11 @@ export type InventoryItem = {
   origin_type?: "seller_direct" | "procurement";
   origin?: "seller_direct" | "primary" | "secondary" | "reseller" | null;
   entry_date?: string | null;
+  price_per_unit?: string | null;
   quantity: number;
   estimated_quantity?: number | null;
   stored_quantity?: number;
+  reserved_quantity?: number;
   is_expired?: boolean;
   updated_at?: string | null;
   created_by_admin_user_id: number;

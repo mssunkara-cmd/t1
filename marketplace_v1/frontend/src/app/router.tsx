@@ -6,12 +6,14 @@ import { BuyerGroupsPage } from "../pages/BuyerGroupsPage";
 import { InventoryPage } from "../pages/InventoryPage";
 import { LoginPage } from "../pages/LoginPage";
 import { OrdersPage } from "../pages/OrdersPage";
+import { OrderGroupDetailPage } from "../pages/OrderGroupDetailPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { ProcurementOrdersPage } from "../pages/ProcurementOrdersPage";
 import { ProductsPage } from "../pages/ProductsPage";
 import { RegionsPage } from "../pages/RegionsPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SellerValidationPage } from "../pages/SellerValidationPage";
+import { SellerOrdersPage } from "../pages/SellerOrdersPage";
 import { SuppliersPage } from "../pages/SuppliersPage";
 import { SuperAdminPage } from "../pages/SuperAdminPage";
 
@@ -21,6 +23,8 @@ export const router = createBrowserRouter([
   { path: "/register", element: <RegisterPage /> },
   { path: "/profile", element: <ProfilePage /> },
   { path: "/orders", element: <OrdersPage /> },
+  { path: "/orders/groups/:orderGroupId", element: <OrderGroupDetailPage /> },
+  { path: "/seller-orders", element: <SellerOrdersPage /> },
   { path: "/products", element: <ProductsPage /> },
   { path: "/suppliers", element: <SuppliersPage /> },
   { path: "/procurement-orders", element: <ProcurementOrdersPage /> },

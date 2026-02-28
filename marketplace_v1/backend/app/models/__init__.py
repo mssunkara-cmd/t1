@@ -1,7 +1,7 @@
 from .audit_log import AuditLog
 from .fresh_produce_inventory import FreshProduceInventoryItem
 from .inventory import InventoryItem
-from .order import Order, OrderItem
+from .order import Order, OrderGroup, OrderItem
 from .permission import Permission
 from .product import Product
 from .product_type import ProductType
@@ -20,6 +20,7 @@ __all__ = [
     "FreshProduceInventoryItem",
     "InventoryItem",
     "Order",
+    "OrderGroup",
     "OrderItem",
     "Permission",
     "Product",

@@ -23,6 +23,7 @@ export function InventoryPage() {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedSellerId, setSelectedSellerId] = useState("");
   const [quantity, setQuantity] = useState("0");
+  const [pricePerUnit, setPricePerUnit] = useState("0.00");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingKind, setEditingKind] = useState<"regular" | "fresh_produce">("regular");
 
@@ -85,6 +86,7 @@ export function InventoryPage() {
     setSelectedProductId("");
     setSelectedSellerId("");
     setQuantity("0");
+    setPricePerUnit("0.00");
   };
 
   const submit = async (event: FormEvent) => {
@@ -96,14 +98,15 @@ export function InventoryPage() {
     }
 
     const qty = Number(quantity);
+    const price = Number(pricePerUnit);
     if (isAdminLike) {
-      if (!selectedProductId || !selectedSellerId || !Number.isInteger(qty) || qty < 0) {
-        setError("Select product, seller and provide non-negative integer quantity.");
+      if (!selectedProductId || !selectedSellerId || !Number.isInteger(qty) || qty < 0 || !Number.isFinite(price) || price < 0) {
+        setError("Select product, seller and provide non-negative quantity and price.");
         return;
       }
     } else if (isSellerOnly) {
-      if (!selectedProductId || !Number.isInteger(qty) || qty < 0) {
-        setError("Select product and provide non-negative integer quantity.");
+      if (!selectedProductId || !Number.isInteger(qty) || qty < 0 || !Number.isFinite(price) || price < 0) {
+        setError("Select product and provide non-negative quantity and price.");
         return;
       }
     }
@@ -111,13 +114,14 @@ export function InventoryPage() {
     try {
       setError(null);
       if (editingId) {
-        await updateInventoryItem(accessToken, editingId, qty, editingKind);
+        await updateInventoryItem(accessToken, editingId, qty, pricePerUnit, editingKind);
         setMessage("Inventory item updated.");
       } else {
         await createInventoryItem(accessToken, {
           product_id: Number(selectedProductId),
           ...(isAdminLike ? { seller_id: Number(selectedSellerId) } : {}),
-          quantity: qty
+          quantity: qty,
+          price_per_unit: pricePerUnit
         });
         setMessage("Inventory item created.");
       }
@@ -134,6 +138,7 @@ export function InventoryPage() {
     setSelectedProductId(String(item.product_id));
     setSelectedSellerId(String(item.seller_id));
     setQuantity(String(item.stored_quantity ?? item.estimated_quantity ?? item.quantity));
+    setPricePerUnit(item.price_per_unit ?? "0.00");
   };
 
   const remove = async (itemId: number, inventoryKind?: "regular" | "fresh_produce") => {
@@ -237,6 +242,11 @@ export function InventoryPage() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
+              <input
+                placeholder="Price Per Unit"
+                value={pricePerUnit}
+                onChange={(e) => setPricePerUnit(e.target.value)}
+              />
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="submit">{editingId ? "Update" : "Create"}</button>
                   {editingId ? (
@@ -260,8 +270,10 @@ export function InventoryPage() {
                 <th align="left">Source Status</th>
                 <th align="left">Origin</th>
                 <th align="left">Entry Date</th>
-                <th align="left">Quantity</th>
+                <th align="left">Price / Unit</th>
+                <th align="left">Available Qty</th>
                 <th align="left">Stored Qty</th>
+                <th align="left">Reserved Qty</th>
                 <th align="left">Expiry</th>
                 {isAdminLike ? <th align="left">Created By Admin</th> : null}
                 {(isAdminLike || isSellerOnly) ? <th align="left">Actions</th> : null}
@@ -281,12 +293,14 @@ export function InventoryPage() {
                   <td>{item.seller_status ?? "-"}</td>
                   <td>{item.origin ?? "-"}</td>
                   <td>{item.entry_date ? new Date(item.entry_date).toLocaleString() : "-"}</td>
+                  <td>{item.price_per_unit ?? "-"}</td>
                   <td>{item.quantity}</td>
                   <td>
                     {item.inventory_kind === "fresh_produce"
                       ? (item.estimated_quantity ?? item.stored_quantity ?? item.quantity)
                       : (item.stored_quantity ?? item.quantity)}
                   </td>
+                  <td>{item.reserved_quantity ?? 0}</td>
                   <td>{item.is_expired ? "Expired (0 available)" : "Active"}</td>
                   {isAdminLike ? <td>{item.created_by_admin_user_id}</td> : null}
                   {(isAdminLike || isSellerOnly) ? (
@@ -299,7 +313,7 @@ export function InventoryPage() {
               ))}
               {items.length === 0 ? (
                 <tr style={{ borderTop: "1px solid #ddd" }}>
-                  <td colSpan={isAdminLike ? 11 : 10}>No inventory items found.</td>
+                  <td colSpan={isAdminLike ? 13 : 12}>No inventory items found.</td>
                 </tr>
               ) : null}
             </tbody>

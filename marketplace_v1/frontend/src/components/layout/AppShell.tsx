@@ -15,6 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {!user && <RouterLink to="/login">Login</RouterLink>}
           {!user && <RouterLink to="/register">Register</RouterLink>}
           {user && <RouterLink to="/orders">Orders</RouterLink>}
+          {user && hasRole("seller") && <RouterLink to="/seller-orders">Seller Orders</RouterLink>}
           {user && <RouterLink to="/profile">My Profile</RouterLink>}
           {user && (hasRole("admin") || hasRole("super_admin") || hasRole("seller")) && (
             <RouterLink to="/inventory">Inventory</RouterLink>

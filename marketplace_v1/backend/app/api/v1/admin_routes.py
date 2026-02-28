@@ -215,11 +215,15 @@ def create_inventory_item() -> tuple[dict[str, object], int]:
     product_id = payload.get("product_id")
     seller_id = payload.get("seller_id")
     quantity = payload.get("quantity")
+    price_per_unit_raw = payload.get("price_per_unit")
 
     if not isinstance(product_id, int):
         return {"message": "product_id must be integer"}, 400
     if not isinstance(quantity, int) or quantity < 0:
         return {"message": "quantity must be a non-negative integer"}, 400
+    price_per_unit = _parse_non_negative_money(price_per_unit_raw)
+    if price_per_unit is None:
+        return {"message": "price_per_unit must be a non-negative number"}, 400
 
     product = db.session.get(Product, product_id)
     if product is None:
@@ -253,6 +257,7 @@ def create_inventory_item() -> tuple[dict[str, object], int]:
             origin="seller_direct",
             entry_date=datetime.now(timezone.utc),
             estimated_quantity=quantity,
+            price_per_unit=price_per_unit,
             created_by_admin_user_id=current_user_id,
         )
         inventory_kind = "fresh_produce"
@@ -265,6 +270,7 @@ def create_inventory_item() -> tuple[dict[str, object], int]:
             origin="seller_direct",
             entry_date=datetime.now(timezone.utc),
             quantity=quantity,
+            price_per_unit=price_per_unit,
             created_by_admin_user_id=current_user_id,
         )
         inventory_kind = "regular"
@@ -304,13 +310,18 @@ def update_inventory_item(item_id: int) -> tuple[dict[str, object], int]:
 
     payload = request.get_json(silent=True) or {}
     quantity = payload.get("quantity")
+    price_per_unit_raw = payload.get("price_per_unit")
     if not isinstance(quantity, int) or quantity < 0:
         return {"message": "quantity must be a non-negative integer"}, 400
+    price_per_unit = _parse_non_negative_money(price_per_unit_raw)
+    if price_per_unit is None:
+        return {"message": "price_per_unit must be a non-negative number"}, 400
 
     if inventory_kind == "regular":
         item.quantity = quantity
     else:
         item.estimated_quantity = quantity
+    item.price_per_unit = price_per_unit
     db.session.commit()
     db.session.refresh(item)
     return {
@@ -1390,6 +1401,7 @@ def push_procurement_order_to_inventory(procurement_id: int) -> tuple[dict[str, 
 
     if existing_item is not None:
         existing_item.quantity += order.quantity
+        existing_item.price_per_unit = order.price_per_unit
         existing_item.origin = link.supplier_type
         existing_item.created_by_admin_user_id = current_user_id
         order.pushed_to_inventory = True
@@ -1408,6 +1420,7 @@ def push_procurement_order_to_inventory(procurement_id: int) -> tuple[dict[str, 
         origin=link.supplier_type,
         entry_date=datetime.now(timezone.utc),
         quantity=order.quantity,
+        price_per_unit=order.price_per_unit,
         created_by_admin_user_id=current_user_id,
     )
     db.session.add(item)
@@ -2264,6 +2277,8 @@ def _build_inventory_item_response(
     is_expired = _is_inventory_item_expired(item)
     stored_quantity = item.quantity if inventory_kind == "regular" else item.estimated_quantity
     effective_quantity = 0 if is_expired else stored_quantity
+    reserved_quantity = item.reserved_quantity if hasattr(item, "reserved_quantity") else 0
+    available_quantity = max(0, effective_quantity - reserved_quantity)
     if item.origin_type == "procurement":
         status = "active" if (item.supplier and item.supplier.is_active) else "inactive"
     else:
@@ -2285,9 +2300,11 @@ def _build_inventory_item_response(
         "origin_type": item.origin_type,
         "origin": item.origin,
         "entry_date": item.entry_date.isoformat() if item.entry_date else None,
-        "quantity": effective_quantity,
+        "price_per_unit": str(item.price_per_unit) if item.price_per_unit is not None else None,
+        "quantity": available_quantity,
         "estimated_quantity": stored_quantity if inventory_kind == "fresh_produce" else None,
         "stored_quantity": stored_quantity,
+        "reserved_quantity": reserved_quantity,
         "is_expired": is_expired,
         "updated_at": item.updated_at.isoformat() if item.updated_at else None,
         "created_by_admin_user_id": item.created_by_admin_user_id,
@@ -2304,6 +2321,16 @@ def _is_inventory_item_expired(item: InventoryItem | FreshProduceInventoryItem) 
         updated_at = updated_at.replace(tzinfo=timezone.utc)
     expiry_at = updated_at + timedelta(days=item.product.validity_days)
     return datetime.now(timezone.utc) >= expiry_at
+
+
+def _parse_non_negative_money(value: object) -> Decimal | None:
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+    if amount < 0:
+        return None
+    return amount.quantize(Decimal("0.01"))
 
 
 def _validate_region_fields(
